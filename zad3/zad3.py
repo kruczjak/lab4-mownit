@@ -84,13 +84,13 @@ class SudokuPuzzle(object):
         new_data[square1], new_data[square2] = new_data[square2], new_data[square1]
         return new_data
 
-    def solve(self, verbose=False):
+    def solve(self, verbose=False, maximum=400000):
         self.random_not_counted()
         current = self.score_board()
         best = current
         T = 0.5  # initial T
 
-        for count in range(0, 400000):
+        for count in range(0, maximum):
             if verbose and (count % 1000 == 0):
                 print "%s,\tT = %.7f,\tbest_till_now = %s,\tcurrent = %s" % \
                       (count, T, best, current)
