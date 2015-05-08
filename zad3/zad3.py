@@ -115,7 +115,11 @@ class SudokuPuzzle(object):
         if best == -162:
             print "\nSolved."
         else:
-            print "\nNot solved :(. (%s/-162 points). Try again." % (best)
+            print "\nNot solved :(. (%s/-162 points). Try again." % best
+
+#############
+#############
+#############
 
 SP = SudokuPuzzle((np.array([
     5, 3, 0, 0, 7, 0, 0, 0, 0,
