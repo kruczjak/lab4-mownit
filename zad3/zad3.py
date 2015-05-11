@@ -4,7 +4,7 @@ from math import exp
 import numpy as np
 
 
-class SudokuPuzzle(object):
+class Sudoku(object):
     def __init__(self, data, original_entries=None):
         self.data = data
         if original_entries is None:
@@ -96,7 +96,7 @@ class SudokuPuzzle(object):
                       (count, T, best, current)
 
             new_data = self.swap_random()
-            new = SudokuPuzzle(new_data, self.original_entries).score_board()
+            new = Sudoku(new_data, self.original_entries).score_board()
             delta = float(current - new)
 
             if exp((delta / T)) - random() > 0:
@@ -121,7 +121,7 @@ class SudokuPuzzle(object):
 #############
 #############
 
-SP = SudokuPuzzle((np.array([
+SP = Sudoku((np.array([
     5, 3, 0, 0, 7, 0, 0, 0, 0,
     6, 0, 0, 1, 9, 5, 0, 0, 0,
     0, 9, 8, 0, 0, 0, 0, 6, 0,
