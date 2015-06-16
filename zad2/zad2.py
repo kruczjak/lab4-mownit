@@ -125,7 +125,7 @@ k = int(raw_input("Number of steps:"))
 d = float(raw_input("Density: "))
 print "Types:\n1 - 4 neighbours\n2 - 8 neighbours"
 type = int(raw_input("Type:"))
-T0 = T = 100
+T0 = T = 1000
 
 arr = []
 for x in range(n):
@@ -136,10 +136,13 @@ blacks = int(math.ceil(d * (n ** 2)))
 for i in range(blacks):
     x = random.randint(0, n - 1)
     y = random.randint(0, n - 1)
-    while arr[x][y] == 1:
-        x = random.randint(0, n - 1)
-        y = random.randint(0, n - 1)
-    arr[x][y] = 1
+    if arr[x][y] == 0:
+        arr[x][y] = 1
+    else:
+        while arr[x][y] == 1:
+            x = random.randint(0,n-1)
+            y = random.randint(0,n-1)
+        arr[x][y] = 1
 
 plt.figure(1)
 plt.title("Old")
