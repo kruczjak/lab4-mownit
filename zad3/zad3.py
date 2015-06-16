@@ -1,210 +1,136 @@
-# SUDOKU
-import math
-import random
-import os
-import os.path
-
-block_num = 3
-############
-def temp(n):
-    global T0
-    T = T0 / (n ** 2)
-    return T  #na poczatek
+from random import shuffle, random, sample, randint
+from copy import deepcopy
+from math import exp
+import numpy as np
 
 
-##########
-def calculate(arr, n):
-    energy = 0
-    for i in range(n):
-        for j in range(n):
-            energy += count_rows_cols(i, j, arr, n) + count_block(i, j, arr, n)
-    return energy
-
-
-##############
-def count_rows_cols(i, j, arr, n):
-    val = arr[i][j]
-    count = 0
-    for x in range(n):
-        if arr[x][j] == val and x != i:
-            count += 1
-
-    for y in range(n):
-        if arr[i][y] == val and y != j:
-            count += 1
-    return count
-
-
-##################
-def count_block(i, j, arr, n):
-    global block_num
-    val = arr[i][j]
-    count = 0
-    blockNumX = (i / block_num)  # 0..2
-    blockNumY = (j / block_num)  #
-    for x in range(blockNumX * 3, blockNumX * 3 + 3):
-        for y in range(blockNumY * 3, blockNumY * 3 + 3):
-            if arr[x][y] == val and (x != i or y != j):
-                count += 1
-
-    return count
-
-
-##############
-def simple_swap(arr, n):
-    global orig
-    new = list(arr)  #kopia?
-    #23:39, moze to jeszcze dzis skonczymy :)
-    xb = random.randint(0, block_num - 1)  #losujemy blok
-    yb = random.randint(0, block_num - 1)
-
-    #Moze byc przypadek ze wszystkie pola w bloku mamy zahardkodowane,
-    #dlatego sprawdzamy czy jest sens w ogole bawic sie tu w zamiany
-    while notHardcoded(xb, yb) <= 1:
-        xb = random.randint(0, block_num - 1)  #losujemy blok
-        yb = random.randint(0, block_num - 1)
-
-    ax = random.randint(xb * 3, xb * 3 + 2)
-    ay = random.randint(yb * 3, yb * 3 + 2)
-
-    while orig[ax][ay] == True:  #trafilismy na zahardkodowany
-        ax = random.randint(xb * 3, xb * 3 + 2)
-        ay = random.randint(yb * 3, yb * 3 + 2)
-
-    bx = random.randint(xb * 3, xb * 3 + 2)
-    by = random.randint(yb * 3, yb * 3 + 2)
-
-    while orig[bx][by] == True or (ax == bx and ay == by):
-        bx = random.randint(xb * 3, xb * 3 + 2)
-        by = random.randint(yb * 3, yb * 3 + 2)
-
-    new[ax][ay], new[bx][by] = new[bx][by], new[ax][ay]
-    return new
-
-
-##################
-def notHardcoded(xb, yb):
-    global orig
-    count = 0
-    for x in range(xb * 3, xb * 3 + 3):
-        for y in range(yb * 3, yb * 3 + 3):
-            if orig[x][y] == False:
-                count += 1
-    return count
-
-
-##################
-def write_solution(solution):
-    pass
-
-
-###################
-def sim_annealing(arr, n, T, k):
-    energy_val = [0.0] * (k + 1)
-    current_solution = list(fill_arr(arr, n))
-    current_val = calculate(current_solution, n)
-    for i in range(1, k):
-        neighbour = simple_swap(current_solution, n)
-        second_val = calculate(neighbour, n)
-        if second_val < current_val:
-            current_solution = neighbour
-            current_val = second_val
+class Sudoku(object):
+    def __init__(self, data, original_entries=None):
+        self.data = data
+        if original_entries is None:
+            self.original_entries = np.arange(81)[self.data > 0]  # list: not 0 positions
         else:
-            if math.exp((current_val - second_val) / T) > 0.8:
-                current_solution = neighbour
-                current_val = second_val
-        T = temp(i)
-        energy_val[i] = current_val
+            self.original_entries = original_entries
 
-    print "Value: " + str(current_val)
-    plt.plot(range(k + 1), energy_val)
-    plt.draw()
-    plt.show()
-    return current_solution
+    def random_not_counted(self):
+        """
+        Setting zero as random
+        """
+        for num in range(9):
+            block_indices = self.get_block(num)
+            block = self.data[block_indices]
+            zero_indices = [ind for i, ind in enumerate(block_indices) if block[i] == 0]
+            to_fill = [i for i in range(1, 10) if i not in block]
+            shuffle(to_fill)
+            for ind, value in zip(zero_indices, to_fill):
+                self.data[ind] = value
 
+    def get_block(self, k, ignore_originals=False):
+        """
+        Get 3x3 blocks
+        """
+        row_offset = (k // 3) * 3
+        col_offset = (k % 3) * 3
+        ptr = [col_offset + (j % 3) + 9 * (row_offset + (j // 3)) for j in range(9)]
+        if ignore_originals:
+            ptr = filter(lambda x: x not in self.original_entries, ptr)
+        return ptr
 
-#################################
-def writeArr(f, arr):
-    global orig
-    for i in range(9):
-        for j in range(9):
-            c = f.read(1)
-            f.read(1)
-            if c == 'x':
-                arr[i][j] = 0
-                orig[i][j] = False
+    @staticmethod
+    def get_column(i):
+        return [i + 9 * j for j in range(9)]
+
+    @staticmethod
+    def get_row(i):
+        return [j + 9 * i for j in range(9)]
+
+    def __str__(self):
+        def not_zero(s):
+            if s != 0:
+                return str(s)
             else:
-                arr[i][j] = int(c)
-                orig[i][j] = True
+                return "x"
 
+        results = np.array([self.data[self.get_row(j)] for j in range(9)])
+        out_s = ""
+        for i, row in enumerate(results):
+            if i % 3 == 0:
+                out_s += "-" * 25 + '\n'
+            out_s += "| " + " | ".join(
+                [" ".join(not_zero(s) for s in list(row)[3 * (k - 1):3 * k]) for k in range(1, 4)]) + " |\n"
+        out_s += "-" * 25 + '\n'
+        return out_s
 
-#################################
+    def score_board(self):
+        """
+        -1 when unique
+        """
+        score = 0
+        for row in range(9):
+            score -= len(set(self.data[self.get_row(row)]))
+        for col in range(9):
+            score -= len(set(self.data[self.get_column(col)]))
+        return score
 
-def writeSolution(f, solution):
-    for i in range(3):
-        for j in range(3):
-            f.write(str(solution[i][j]) + " ")
-        f.write('\n')
+    def swap_random(self):
+        """
+        Picking a square, then swap two small squares within.
+        """
+        new_data = deepcopy(self.data)
+        block = randint(0, 8)
+        num_in_block = len(self.get_block(block, ignore_originals=True))
+        random_squares = sample(range(num_in_block), 2)
+        square1, square2 = [self.get_block(block, ignore_originals=True)[ind] for ind in random_squares]
+        new_data[square1], new_data[square2] = new_data[square2], new_data[square1]
+        return new_data
 
+    def solve(self, verbose=False, maximum=400000):
+        self.random_not_counted()
+        current = self.score_board()
+        best = current
+        T = 0.5  # initial T
 
-##############################
-def fill_arr(arr, n):
-    #Kilka sposobow:
-    #1. Wypelnic wartosciamy unikalnymi w kazdym bloku i w kazdej iteracji sobie permutujemy liczby w bloku
-    #2. Nawrzucac absurdalnie losowe wartosci i w kazdej iteracji wybierac np. 9 takich (z kazdego bloku) dla ktorego losuje znowu
-    #Wybieram sobie rozw. nr 1 - bardziej madre i prawdopodobne
-    global orig
-    i = 1
-    for xb in range(block_num):
-        for yb in range(block_num):
-            for x in range(xb * 3, xb * 3 + 3):
-                for y in range(yb * 3, yb * 3 + 3):
-                    if arr[x][y] == 0:
-                        #9 wartosci unikalnych w polu
-                        while isInBlock(i, arr, xb, yb):
-                            i += 1
-                        arr[x][y] = i
-            i = 1
-    return arr
+        for count in range(0, maximum):
+            if verbose and (count % 1000 == 0):
+                print "%s,\tT = %.7f,\tbest_till_now = %s,\tcurrent = %s" % \
+                      (count, T, best, current)
 
+            new_data = self.swap_random()
+            new = Sudoku(new_data, self.original_entries).score_board()
+            delta = float(current - new)
 
-##############################
-def isInBlock(i, arr, xb, yb):
-    for x in range(xb * 3, xb * 3 + 3):
-        for y in range(yb * 3, yb * 3 + 3):
-            if arr[x][y] == i:
-                return True
+            if exp((delta / T)) - random() > 0:
+                self.data = new_data
+                current = new
 
-    return False
+            if current < best:
+                best = new
 
-#############################
-#n = int(raw_input("Input n: "))
-T = float(raw_input("Input T: "))
-k = int(raw_input("Input no. of steps: "))
+            if new == -162:
+                self.data = new_data
+                break
 
-T0 = T  #poczatkowa temperatura
-i = 1
-print "Reading from file..."
-T = T0
-for name in os.listdir('./test'):
-    if os.path.isfile('./test/' + name):  #TODO: Sprawic by to ladniej wygladalo
-        arr = [[0 for x in range(9)] for x in range(9)]
-        orig = [[0 for x in range(9)] for x in
-                range(9)]  #orig daje nam informacje ktore pola mozemy sobie permutowac swobodnie
-        f = open('./test/' + name, 'r')
-        writeArr(f, arr)
-        print "Before"
-        for p in range(9):
-            print arr[p]
+            T *= .99999
 
-        print "Working..."
-        solution = sim_annealing(arr, 9, T, k)
-        print "Writing..."
-        f2 = open(str(i) + "_solution.txt", 'w')
-        writeSolution(f2, solution)
-        f.close()
-        f2.close()
-        i += 1
-        print "Results:"
-        for q in range(9):
-            print solution[q]
+        if best == -162:
+            print "\nSolved."
+        else:
+            print "\nNot solved :(. (%s/-162 points). Try again." % best
+
+#############
+#############
+#############
+
+SP = Sudoku((np.array([
+    5, 3, 0, 0, 7, 0, 0, 0, 0,
+    6, 0, 0, 1, 9, 5, 0, 0, 0,
+    0, 9, 8, 0, 0, 0, 0, 6, 0,
+    8, 0, 0, 0, 6, 0, 0, 0, 3,
+    4, 0, 0, 8, 0, 3, 0, 0, 1,
+    7, 0, 0, 0, 2, 0, 0, 0, 6,
+    0, 6, 0, 0, 0, 0, 2, 8, 0,
+    0, 0, 0, 4, 1, 9, 0, 0, 5,
+    0, 0, 0, 0, 8, 0, 0, 7, 9])))
+print SP
+SP.solve(verbose=True)
+print SP

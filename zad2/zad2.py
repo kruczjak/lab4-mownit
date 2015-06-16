@@ -46,7 +46,8 @@ def neighbours_8(x, y, arr, n):
 
 def temp(n):
     global T0
-    return T0 / n
+    T = T0 / (n)
+    return T
 
 
 def energy_fun(n):
@@ -57,7 +58,7 @@ def energy_fun(n):
 
 
 def swap(arr, n):
-    new = list(arr)
+    new = arr
     max = n-1
     x1 = random.randint(0, max)
     y1 = random.randint(0, max)
